@@ -56,7 +56,7 @@ jobs:
 
           # Injeta as Secrets no arquivo .env da EC2 em tempo de deploy
           echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
-          echo "HUGGINGFACEHUB_API_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
+          echo "HF_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
 
           # Sobe/atualiza a aplicação completa via Docker Compose
           docker compose up -d --build

@@ -1,11 +1,10 @@
 # api/main.py
 import time
+import os
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import prometheus_client as prom
 from prometheus_fastapi_instrumentator import Instrumentator
-
-import os
 
 # Obtém o caminho base do projeto
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -37,14 +36,35 @@ def ask_question(request: QueryRequest):
     start_time = time.time()
     
     try:
-        # Executa a busca através do módulo RAG separado
-        answer = rag.query(request.question)
+        # Executa a busca através do módulo RAG
+        raw_result = rag.query(request.question)
+        
+        # Trata o retorno caso rag.query devolva um dicionário do LangChain
+        if isinstance(raw_result, dict):
+            answer_text = raw_result.get("answer") or raw_result.get("result") or str(raw_result)
+            sources = raw_result.get("context") or raw_result.get("source_documents") or []
+        else:
+            answer_text = str(raw_result)
+            sources = []
+
+        # Formata os documentos do ChromaDB para JSON serializável
+        formatted_sources = []
+        for doc in sources:
+            if hasattr(doc, "page_content"):
+                formatted_sources.append({
+                    "page_content": doc.page_content,
+                    "metadata": getattr(doc, "metadata", {})
+                })
+            elif isinstance(doc, dict):
+                formatted_sources.append(doc)
         
         # Registra a latência para o Prometheus
         LATENCY.observe(time.time() - start_time)
+        
         return {
             "query": request.question,
-            "answer": answer
+            "answer": answer_text,
+            "source_documents": formatted_sources
         }
     except Exception as e:
         ERROR_COUNT.inc()

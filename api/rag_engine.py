@@ -13,6 +13,12 @@ from langchain_classic.chains.combine_documents import create_stuff_documents_ch
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_classic.globals import set_verbose
 
+import torch
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+torch.set_num_threads(1)
+
 # Ativa os logs detalhados do LangChain
 set_verbose(True)
 load_dotenv()

@@ -21,7 +21,6 @@ if "messages" not in st.session_state:
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
-        # Exibe os documentos do histórico se existirem
         if "sources" in message and message["sources"]:
             with st.expander("📚 Ver trechos do CTB consultados no ChromaDB"):
                 for idx, doc in enumerate(message["sources"], 1):
@@ -43,23 +42,28 @@ if prompt := st.chat_input("Pergunte algo sobre o Código de Trânsito..."):
                     json={"question": prompt},
                     timeout=30
                 )
-                
+
                 if response.status_code == 200:
                     data = response.json()
+                    
                     answer = data.get("answer", "Sem resposta da API.")
+                    # Se answer ainda for um dicionário por algum motivo, extrai a string
+                    if isinstance(answer, dict):
+                        answer = answer.get("answer", str(answer))
+                        
                     sources = data.get("source_documents", [])
-                    
+
                     st.markdown(answer)
-                    
+
                     if sources:
                         with st.expander("📚 Ver trechos do CTB consultados no ChromaDB"):
                             for idx, doc in enumerate(sources, 1):
                                 page = doc.get("metadata", {}).get("page", "N/A")
                                 st.write(f"**Trecho {idx} (Página {page}):**")
                                 st.info(doc.get("page_content", ""))
-                    
+
                     st.session_state.messages.append({
-                        "role": "assistant", 
+                        "role": "assistant",
                         "content": answer,
                         "sources": sources
                     })
