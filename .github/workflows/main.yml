@@ -26,6 +26,8 @@ jobs:
         pip install langchain-classic pytest httpx
 
     - name: Executar Testes Unitários
+      env:
+        GROQ_API_KEY: "mock_key_for_ci"
       run: |
         pytest -v
 
