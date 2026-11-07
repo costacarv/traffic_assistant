@@ -45,7 +45,7 @@ class LegalRAGEngine:
 
         # 4. Configura o LLM e o Prompt Jurídico
         llm = ChatGroq(
-            model="openai/gpt-oss-120b", # Você também pode usar "llama-3.1-8b-instant"
+            model="openai/gpt-oss-120b", 
             temperature=0.2,
             api_key=groq_api_key
             )
