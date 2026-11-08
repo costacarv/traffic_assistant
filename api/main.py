@@ -20,7 +20,11 @@ rag = LegalRAGEngine(pdf_path=PDF_PATH)
 
 # Métricas customizadas do Prometheus
 REQUEST_COUNT = prom.Counter('legal_queries_total', 'Total de consultas jurídicas realizadas')
-LATENCY = prom.Summary('legal_query_latency_seconds', 'Tempo de resposta da consulta RAG')
+LATENCY = prom.Histogram(
+    'legal_query_latency_seconds', 
+    'Tempo de resposta da consulta RAG',
+    buckets=[0.5, 1.0, 2.5, 5.0, 10.0, 15.0, 30.0]
+)
 ERROR_COUNT = prom.Counter('legal_query_errors_total', 'Total de erros em consultas')
 
 class QueryRequest(BaseModel):

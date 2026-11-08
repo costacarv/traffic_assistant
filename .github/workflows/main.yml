@@ -11,25 +11,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout do código
-      uses: actions/checkout@v4
+      - name: Checkout do código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Desativa shallow clone para que o SonarCloud analise a história dos commits
 
-    - name: Configurar Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Configurar Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
 
-    - name: Instalar dependências para teste
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest httpx
+      - name: Instalar dependências de teste
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov httpx fastapi prometheus-client prometheus-fastapi-instrumentator
 
-    - name: Executar Testes Unitários
-      env:
-        GROQ_API_KEY: "mock_key_for_ci"
-      run: |
-        pytest -v
+      - name: Executar testes e gerar relatório de cobertura
+        run: |
+          pytest --cov=api --cov-report=xml:coverage.xml tests/
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   deploy-to-aws:
     needs: build-and-test

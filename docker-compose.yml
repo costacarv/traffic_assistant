@@ -33,8 +33,6 @@ services:
     image: grafana/grafana
     ports:
       - "3000:3000"
-    deploy:
-      resources:
-        limits:
-          memory: 256M
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
     restart: always
