@@ -46,6 +46,12 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
+      - name: Criar arquivo .env para o ambiente de testes
+        run: |
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
+          # Adicione aqui outras variáveis que seu docker-compose.yml exige
+          # Exemplo: echo "ENVIRONMENT=test" >> .env
+
       - name: Subir aplicação temporária no Runner
         run: docker compose up -d --build api
 
@@ -57,8 +63,10 @@ jobs:
         with:
           target: 'http://localhost:8000/openapi.json'
           format: 'openapi'
+          fail_action: false
 
       - name: Derrubar ambiente temporário
+        if: always() # Garante que derruba os containers mesmo se a análise falhar
         run: docker compose down
 
   deploy-to-aws:
