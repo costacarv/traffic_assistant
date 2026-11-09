@@ -38,6 +38,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          
+  dast-scan:
+    needs: deploy-ec2 # Executa após o deploy ou em paralelo aos testes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Baixar OpenAPI Spec / Swagger da API
+        # Caso sua API FastAPI exponha a documentação OpenAPI em formato JSON/YAML
+        run: |
+          docker compose up -d api
+          sleep 5
+          curl http://localhost:8000/openapi.json -o openapi.json
+
+      - name: Executar OWASP ZAP API Scan (DAST)
+        uses: zaproxy/action-api-scan@v0.7.0
+        with:
+          target: 'http://localhost:8000/openapi.json'
+          format: 'openapi'
+          fail_action: false # Define como 'true' se quiser bloquear a pipeline em falhas graves
+          cmd_options: '-g gen.conf'
 
   deploy-to-aws:
     needs: build-and-test
@@ -67,3 +89,5 @@ jobs:
 
           # Recompila e reinicia os serviços
           docker compose up -d --build
+    
+  
