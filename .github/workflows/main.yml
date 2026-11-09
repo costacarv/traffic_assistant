@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0  # Desativa shallow clone para que o SonarCloud analise a história dos commits
 
       - name: Configurar Python 3.10
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
@@ -34,7 +34,7 @@ jobs:
           pytest --cov=api --cov-report=xml:coverage.xml tests/
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: sonarsource/sonarqube-scan-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
