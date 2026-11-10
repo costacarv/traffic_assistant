@@ -38,6 +38,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          args: >
+            -Dsonar.organization=seu-nome-de-usuario-ou-org
+            -Dsonar.projectKey=seu-nome-de-usuario-ou-org_traffic_assistant
 
   dast-scan:
     needs: build-and-test
