@@ -59,13 +59,15 @@ jobs:
       - name: Subir aplicação temporária no Runner
         run: docker compose up -d --build api
 
-      - name: Aguardar API inicializar
-        run: sleep 10
+      - name: Aguardar API inicializar e baixar OpenAPI Spec
+        run: |
+          sleep 10
+          curl -f http://localhost:8000/openapi.json -o openapi.json
 
       - name: Executar OWASP ZAP Scan (DAST)
         uses: zaproxy/action-api-scan@v0.7.0
         with:
-          target: 'http://localhost:8000/openapi.json'
+          target: 'openapi.json'
           format: 'openapi'
           fail_action: false
 
