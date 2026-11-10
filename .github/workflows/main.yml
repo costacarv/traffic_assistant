@@ -40,8 +40,8 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
-            -Dsonar.organization=seu-nome-de-usuario-ou-org
-            -Dsonar.projectKey=seu-nome-de-usuario-ou-org_traffic_assistant
+            -Dsonar.organization=costacarv
+            -Dsonar.projectKey=costacarv_traffic_assistant
 
   dast-scan:
     needs: build-and-test
