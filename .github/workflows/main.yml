@@ -61,8 +61,13 @@ jobs:
 
       - name: Aguardar API inicializar e baixar OpenAPI Spec
         run: |
-          sleep 10
-          curl -f http://localhost:8000/openapi.json -o openapi.json
+          echo "Aguardando inicialização da API FastAPI..."
+          # Tenta conectar à API por até 30 segundos usando retry resiliente
+          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:8000/openapi.json -o openapi.json || {
+            echo "::error::API falhou ao responder. Exibindo logs do container:"
+            docker compose logs api
+            exit 1
+          }
 
       - name: Executar OWASP ZAP Scan (DAST)
         uses: zaproxy/action-api-scan@v0.7.0
