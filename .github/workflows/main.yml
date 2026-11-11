@@ -64,17 +64,38 @@ jobs:
         run: |
           python -c "
           import json
-          from unittest.mock import MagicMock
           import sys
+          from unittest.mock import MagicMock
 
-          # Mocks para evitar importar dependências pesadas de RAG/IA no runner
-          sys.modules['langchain'] = MagicMock()
-          sys.modules['langchain_community'] = MagicMock()
-          sys.modules['langchain_core'] = MagicMock()
+          class MockPackage(MagicMock):
+              @classmethod
+              def __getattr__(cls, name):
+                  return MagicMock()
+
+          # Mock all Langchain and related heavy dependencies
+          sys.modules['langchain'] = MockPackage()
+          sys.modules['langchain_community'] = MockPackage()
+          sys.modules['langchain_community.document_loaders'] = MockPackage()
+          sys.modules['langchain_community.embeddings'] = MockPackage()
+          sys.modules['langchain_community.vectorstores'] = MockPackage()
+          sys.modules['langchain_core'] = MockPackage()
+          sys.modules['langchain_core.prompts'] = MockPackage()
+          sys.modules['langchain_core.runnables'] = MockPackage()
+          sys.modules['langchain_core.output_parsers'] = MockPackage()
+          sys.modules['langchain_groq'] = MockPackage()
           
-          from api.main import app
-          with open('openapi.json', 'w') as f:
-              json.dump(app.openapi(), f) 
+          # Add any other heavy ML/Data modules your api/main.py or rag_engine.py imports
+          # sys.modules['chromadb'] = MockPackage()
+          # sys.modules['sentence_transformers'] = MockPackage()
+
+          try:
+              from api.main import app
+              with open('openapi.json', 'w') as f:
+                  json.dump(app.openapi(), f)
+              print('OpenAPI spec generated successfully.')
+          except Exception as e:
+              print(f'Error generating OpenAPI spec: {e}')
+              sys.exit(1)
           "
 
       - name: Executar OWASP ZAP Scan (DAST)
