@@ -55,38 +55,22 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Instalar dependências leves para OpenAPI
+      - name: Instalar dependências da API
         run: |
           python -m pip install --upgrade pip
+          # Instala as dependências reais para evitar conflitos de metaclass
           pip install -r requirements.txt
+          pip install fastapi uvicorn pydantic
 
       - name: Gerar OpenAPI Spec via código
+        env:
+          # Injeta uma chave falsa para que o código passe pela inicialização sem quebrar
+          GROQ_API_KEY: "mock_key_for_openapi"
         run: |
           python -c "
           import json
           import sys
-          from unittest.mock import MagicMock
-
-          class MockPackage(MagicMock):
-              @classmethod
-              def __getattr__(cls, name):
-                  return MagicMock()
-
-          # Mocks originais...
-          sys.modules['langchain'] = MockPackage()
-          sys.modules['langchain_community'] = MockPackage()
-          sys.modules['langchain_community.document_loaders'] = MockPackage()
-          sys.modules['langchain_community.embeddings'] = MockPackage()
-          sys.modules['langchain_community.vectorstores'] = MockPackage()
-          sys.modules['langchain_core'] = MockPackage()
-          sys.modules['langchain_core.prompts'] = MockPackage()
-          sys.modules['langchain_core.runnables'] = MockPackage()
-          sys.modules['langchain_core.output_parsers'] = MockPackage()
-          sys.modules['langchain_groq'] = MockPackage()
           
-          # NOVA LINHA ADICIONADA:
-          sys.modules['langchain_core.documents'] = MockPackage()
-
           try:
               from api.main import app
               with open('openapi.json', 'w') as f:
