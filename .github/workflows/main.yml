@@ -101,7 +101,7 @@ jobs:
           }
 
       - name: Executar OWASP ZAP Scan (DAST)
-        uses: zaproxy/action-api-scan@v0.12.0  # Atualizado para a versão mais recente
+        uses: zaproxy/action-api-scan@v0.10.0  # Atualizado para a versão mais recente
         with:
           target: 'openapi.json'
           format: 'openapi'
