@@ -33,7 +33,7 @@ jobs:
         run: |
           pytest --cov=api --cov-report=xml:coverage.xml tests/
 
-      - name: SonarCloud Scan 
+      - name: SonarCloud Scan  
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -103,7 +103,7 @@ jobs:
           target: 'openapi.json'
           format: 'openapi'
           fail_action: false
-          
+
   deploy-to-aws:
     needs: [build-and-test, dast-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
