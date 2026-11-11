@@ -101,13 +101,12 @@ jobs:
           }
 
       - name: Executar OWASP ZAP Scan (DAST)
-        uses: zaproxy/action-api-scan@v0  # Aponta para a versão mais recente da branch v0
+        uses: zaproxy/action-api-scan@master
         with:
           target: 'openapi.json'
           format: 'openapi'
           fail_action: false
-          issue_title: '' 
-          artifact_name: 'zap-report'
+          issue_title: ''
 
   deploy-to-aws:
     needs: [build-and-test, dast-scan]
