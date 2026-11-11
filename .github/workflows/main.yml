@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Checkout do código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0  # Desativa shallow clone para que o SonarCloud analise a história dos commits
 
@@ -51,7 +51,7 @@ jobs:
       issues: write  # Concede permissão para a Action registrar os alertas
     steps:
       - name: Checkout do código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Configurar Python
         uses: actions/setup-python@v5
@@ -114,7 +114,7 @@ jobs:
 
     steps:
     - name: Checkout do código
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Deploy via SSH na Instância EC2
       uses: appleboy/ssh-action@v1.0.3
