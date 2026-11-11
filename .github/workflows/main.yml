@@ -74,7 +74,7 @@ jobs:
           
           from api.main import app
           with open('openapi.json', 'w') as f:
-              json.dump(app.openapi(), f)
+              json.dump(app.openapi(), f) 
           "
 
       - name: Executar OWASP ZAP Scan (DAST)
