@@ -46,6 +46,9 @@ jobs:
   dast-scan:
     needs: build-and-test
     runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
     steps:
       - name: Checkout do código
         uses: actions/checkout@v4
