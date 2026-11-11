@@ -14,7 +14,7 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Desativa shallow clone para que o SonarCloud analise a história dos commits
+          fetch-depth: 0
 
       - name: Configurar Python 3.10
         uses: actions/setup-python@v5
@@ -24,8 +24,7 @@ jobs:
       - name: Instalar dependências de teste
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-cov httpx2
+          pip install pytest pytest-cov httpx fastapi pydantic prometheus-client prometheus-fastapi-instrumentator
 
       - name: Executar testes e gerar relatório de cobertura
         env:
@@ -33,7 +32,7 @@ jobs:
         run: |
           pytest --cov=api --cov-report=xml:coverage.xml tests/
 
-      - name: SonarCloud Scan 
+      - name: SonarQube Cloud Scan
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -50,24 +49,32 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Criar arquivo .env para o ambiente de testes
-        run: |
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" >> .env
-          # Adicione aqui outras variáveis que seu docker-compose.yml exige
-          # Exemplo: echo "ENVIRONMENT=test" >> .env
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-      - name: Subir aplicação temporária no Runner
-        run: docker compose up -d --build api
-
-      - name: Aguardar API inicializar e baixar OpenAPI Spec
+      - name: Instalar dependências leves para OpenAPI
         run: |
-          echo "Aguardando inicialização da API FastAPI..."
-          # Tenta conectar à API por até 30 segundos usando retry resiliente
-          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:8000/openapi.json -o openapi.json || {
-            echo "::error::API falhou ao responder. Exibindo logs do container:"
-            docker compose logs api
-            exit 1
-          }
+          python -m pip install --upgrade pip
+          pip install fastapi uvicorn pydantic
+
+      - name: Gerar OpenAPI Spec via código
+        run: |
+          python -c "
+          import json
+          from unittest.mock import MagicMock
+          import sys
+
+          # Mocks para evitar importar dependências pesadas de RAG/IA no runner
+          sys.modules['langchain'] = MagicMock()
+          sys.modules['langchain_community'] = MagicMock()
+          sys.modules['langchain_core'] = MagicMock()
+          
+          from api.main import app
+          with open('openapi.json', 'w') as f:
+              json.dump(app.openapi(), f)
+          "
 
       - name: Executar OWASP ZAP Scan (DAST)
         uses: zaproxy/action-api-scan@v0.7.0
@@ -76,37 +83,31 @@ jobs:
           format: 'openapi'
           fail_action: false
 
-      - name: Derrubar ambiente temporário
-        if: always() # Garante que derruba os containers mesmo se a análise falhar
-        run: docker compose down
-
   deploy-to-aws:
     needs: [build-and-test, dast-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout do código
-      uses: actions/checkout@v4
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-    - name: Deploy via SSH na Instância EC2
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_SSH_KEY }}
-        script: |
-          cd ~/mlops-legal-assistant
-          
-          # Força a sincronização limpa com o repositório remoto
-          git fetch origin main
-          git reset --hard origin/main
-          
-          # Garante a recriação das variáveis no .env
-          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
-          echo "HF_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
+      - name: Deploy via SSH na Instância EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/mlops-legal-assistant
+            
+            # Sincronização limpa com o repositório
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Recriação das variáveis de ambiente em produção
+            echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
+            echo "HF_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
 
-          # Recompila e reinicia os serviços
-          docker compose up -d --build
-    
-  
+            # Build e restart dos containers na EC2
+            docker compose up -d --build
