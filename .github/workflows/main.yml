@@ -64,7 +64,6 @@ jobs:
 
       - name: Gerar OpenAPI Spec via código
         env:
-          # Injeta uma chave falsa para que o código passe pela inicialização sem quebrar
           GROQ_API_KEY: "mock_key_for_openapi"
         run: |
           python -c "
@@ -73,9 +72,17 @@ jobs:
           
           try:
               from api.main import app
+              
+              # Gera o schema padrão
+              openapi_schema = app.openapi()
+              
+              # Injeta uma URL de servidor mockada para o OWASP ZAP não falhar
+              openapi_schema['servers'] = [{'url': 'http://localhost:8000'}]
+              
               with open('openapi.json', 'w') as f:
-                  json.dump(app.openapi(), f)
-              print('OpenAPI spec generated successfully.')
+                  json.dump(openapi_schema, f)
+                  
+              print('OpenAPI spec generated successfully with mock server URL.')
           except Exception as e:
               print(f'Error generating OpenAPI spec: {e}')
               sys.exit(1)
