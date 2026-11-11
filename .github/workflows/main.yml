@@ -69,24 +69,33 @@ jobs:
           python -c "
           import json
           import sys
-          
           try:
               from api.main import app
-              
-              # Gera o schema padrão
               openapi_schema = app.openapi()
-              
-              # Injeta uma URL de servidor mockada para o OWASP ZAP não falhar
               openapi_schema['servers'] = [{'url': 'http://localhost:8000'}]
-              
               with open('openapi.json', 'w') as f:
                   json.dump(openapi_schema, f)
-                  
-              print('OpenAPI spec generated successfully with mock server URL.')
           except Exception as e:
               print(f'Error generating OpenAPI spec: {e}')
               sys.exit(1)
           "
+
+      - name: Iniciar API FastAPI em background
+        env:
+          GROQ_API_KEY: "mock_key_for_openapi"
+          # Adicione aqui outras variáveis de ambiente necessárias (ex: caminho de banco)
+        run: |
+          echo "Iniciando Uvicorn..."
+          # O '&' no final faz o processo rodar em background para não travar o pipeline
+          nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
+          
+          echo "Aguardando a API ficar online..."
+          # Tenta acessar a rota gerada para garantir que o servidor subiu
+          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:8000/openapi.json || {
+            echo "::error::API falhou ao iniciar. Logs do Uvicorn:"
+            cat api.log
+            exit 1
+          }
 
       - name: Executar OWASP ZAP Scan (DAST)
         uses: zaproxy/action-api-scan@v0.7.0
@@ -94,7 +103,7 @@ jobs:
           target: 'openapi.json'
           format: 'openapi'
           fail_action: false
-
+          
   deploy-to-aws:
     needs: [build-and-test, dast-scan]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
