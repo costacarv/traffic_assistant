@@ -83,16 +83,16 @@ jobs:
       - name: Iniciar API FastAPI em background
         env:
           GROQ_API_KEY: "mock_key_for_openapi"
-          # Adicione aqui outras variáveis de ambiente necessárias (ex: caminho de banco)
+          # Adicione o token do Hugging Face para acelerar o download e evitar rate limits
+          HF_TOKEN: ${{ secrets.HUGGINGFACEHUB_API_TOKEN }}
         run: |
           echo "Iniciando Uvicorn..."
-          # O '&' no final faz o processo rodar em background para não travar o pipeline
           nohup uvicorn api.main:app --host 0.0.0.0 --port 8000 > api.log 2>&1 &
           
-          echo "Aguardando a API ficar online..."
-          # Tenta acessar a rota gerada para garantir que o servidor subiu
-          curl --retry 10 --retry-delay 3 --retry-connrefused -f http://localhost:8000/openapi.json || {
-            echo "::error::API falhou ao iniciar. Logs do Uvicorn:"
+          echo "Aguardando a API ficar online (isso pode levar alguns minutos devido ao download do modelo)..."
+          # Aumentamos para 40 tentativas com 5 segundos de intervalo (aprox. 3.3 minutos de espera máxima)
+          curl --retry 40 --retry-delay 5 --retry-connrefused -f http://localhost:8000/openapi.json || {
+            echo "::error::API falhou ao iniciar a tempo. Logs do Uvicorn:"
             cat api.log
             exit 1
           }
