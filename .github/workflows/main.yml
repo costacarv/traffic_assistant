@@ -14,7 +14,7 @@ jobs:
       - name: Checkout do código
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Desativa shallow clone para que o SonarCloud analise a história dos commits
 
       - name: Configurar Python 3.10
         uses: actions/setup-python@v5
@@ -24,7 +24,8 @@ jobs:
       - name: Instalar dependências de teste
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pytest-cov httpx fastapi pydantic prometheus-client prometheus-fastapi-instrumentator
+          pip install -r requirements.txt
+          pip install pytest pytest-cov httpx2
 
       - name: Executar testes e gerar relatório de cobertura
         env:
@@ -32,7 +33,7 @@ jobs:
         run: |
           pytest --cov=api --cov-report=xml:coverage.xml tests/
 
-      - name: SonarQube Cloud Scan
+      - name: SonarCloud Scan 
         uses: SonarSource/sonarqube-scan-action@v5.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -89,25 +90,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do código
-        uses: actions/checkout@v4
+    - name: Checkout do código
+      uses: actions/checkout@v4
 
-      - name: Deploy via SSH na Instância EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd ~/mlops-legal-assistant
-            
-            # Sincronização limpa com o repositório
-            git fetch origin main
-            git reset --hard origin/main
-            
-            # Recriação das variáveis de ambiente em produção
-            echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
-            echo "HF_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
+    - name: Deploy via SSH na Instância EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_SSH_KEY }}
+        script: |
+          cd ~/mlops-legal-assistant
+          
+          # Força a sincronização limpa com o repositório remoto
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # Garante a recriação das variáveis no .env
+          echo "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" > .env
+          echo "HF_TOKEN=${{ secrets.HUGGINGFACEHUB_API_TOKEN }}" >> .env
 
-            # Build e restart dos containers na EC2
-            docker compose up -d --build
+          # Recompila e reinicia os serviços
+          docker compose up -d --build
+    
+  
