@@ -18,6 +18,7 @@ st.title("⚖️ Assistente Jurídico - Código de Trânsito Brasileiro")
 st.subheader("Consultas inteligentes baseadas em RAG com monitoramento SRE")
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_KEY = os.getenv("API_KEY", "")
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -45,16 +46,17 @@ if prompt := st.chat_input("Pergunte algo sobre o Código de Trânsito..."):
                 response = requests.post(
                     f"{API_URL}/ask",
                     json={"question": prompt},
+                    headers={"X-API-Key": API_KEY},
                     timeout=30
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    
+
                     answer = data.get("answer", "Sem resposta da API.")
                     if isinstance(answer, dict):
                         answer = answer.get("answer", str(answer))
-                        
+
                     sources = data.get("source_documents", [])
 
                     st.markdown(answer)
@@ -71,6 +73,22 @@ if prompt := st.chat_input("Pergunte algo sobre o Código de Trânsito..."):
                         "content": answer,
                         "sources": sources
                     })
+
+                elif response.status_code == 400:
+                    guardrail_msg = response.json().get(
+                        "detail",
+                        "Por favor, reformule sua pergunta dentro do tema de trânsito."
+                    )
+                    st.warning(f"⚖️ {guardrail_msg}")
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": f"⚖️ {guardrail_msg}"
+                    })
+
+                elif response.status_code in (401, 403):
+                    logger.critical("Falha de autenticação entre Frontend e API (X-API-Key inválida).")
+                    st.error("⚠️ Falha de autorização interna ao acessar o serviço. Contate o administrador.")
+
                 else:
                     logger.error(f"Erro HTTP {response.status_code} na API: {response.text}")
                     st.error("⚠️ Ocorreu uma falha temporária ao processar sua consulta. Por favor, tente novamente.")
