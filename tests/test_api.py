@@ -26,7 +26,7 @@ def test_ask_question_success_dict(mock_rag):
     }
 
     payload = {"question": "Qual o limite de velocidade na via?"}
-    response = client.post("/ask", json=payload, HEADERS = {"X-API-Key": "test_key_for_ci"})
+    response = client.post("/ask", json=payload, headers = {"X-API-Key": "test_key_for_ci"})
     
     assert response.status_code == 200
     data = response.json()
@@ -40,7 +40,7 @@ def test_ask_question_success_string(mock_rag):
     mock_rag.query.return_value = "Resposta em string pura"
 
     payload = {"question": "Qual o limite de velocidade na via?"}
-    response = client.post("/ask", json=payload, HEADERS = {"X-API-Key": "test_key_for_ci"})
+    response = client.post("/ask", json=payload, headers = {"X-API-Key": "test_key_for_ci"})
     
     assert response.status_code == 200
     data = response.json()
@@ -75,8 +75,8 @@ def test_ask_question_exception(mock_rag):
     """Testa a captura de exceções e incremento de métricas de erro na rota /ask."""
     mock_rag.query.side_effect = Exception("Falha de conexão com a Groq")
 
-    payload = {"question": "Erro forçado"}
-    response = client.post("/ask", json=payload, HEADERS = {"X-API-Key": "test_key_for_ci"})
+    payload = {"question": "Pergunta sobre multa no CTB que vai falhar"}
+    response = client.post("/ask", json=payload, headers = {"X-API-Key": "test_key_for_ci"})
     
     assert response.status_code == 500
     assert "Erro interno ao consultar a base jurídica" in response.json()["detail"]
