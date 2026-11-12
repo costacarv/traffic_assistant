@@ -2,6 +2,11 @@
 import streamlit as st
 import requests
 import os
+import logging
+
+# Log para análise de SRE/DevOps no container
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="Assistente Jurídico CTB",
@@ -47,7 +52,6 @@ if prompt := st.chat_input("Pergunte algo sobre o Código de Trânsito..."):
                     data = response.json()
                     
                     answer = data.get("answer", "Sem resposta da API.")
-                    # Se answer ainda for um dicionário por algum motivo, extrai a string
                     if isinstance(answer, dict):
                         answer = answer.get("answer", str(answer))
                         
@@ -68,6 +72,17 @@ if prompt := st.chat_input("Pergunte algo sobre o Código de Trânsito..."):
                         "sources": sources
                     })
                 else:
-                    st.error(f"Erro na API ({response.status_code}): {response.text}")
+                    logger.error(f"Erro HTTP {response.status_code} na API: {response.text}")
+                    st.error("⚠️ Ocorreu uma falha temporária ao processar sua consulta. Por favor, tente novamente.")
+
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"Erro de Conexão com a API ({API_URL}): {e}")
+                st.error("⚠️ O serviço de inteligência está temporariamente indisponível ou inicializando. Tente novamente em instantes.")
+
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"Timeout na requisição para a API: {e}")
+                st.error("⏱️ A consulta demorou mais do que o esperado. Por favor, tente refazer a pergunta.")
+
             except requests.exceptions.RequestException as e:
-                st.error(f"Erro de conexão com a API: {e}")
+                logger.error(f"Erro na requisição HTTP: {e}")
+                st.error("⚠️ Não foi possível comunicar com o servidor no momento.")
