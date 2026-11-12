@@ -31,6 +31,7 @@ jobs:
       - name: Executar testes e gerar relatório de cobertura
         env:
           GROQ_API_KEY: "mock_key_for_ci"
+          API_KEY: "test_key_for_ci"
         run: |
           pytest --cov=api --cov-report=xml:coverage.xml tests/
 

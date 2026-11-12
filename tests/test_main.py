@@ -1,3 +1,5 @@
+from urllib import response
+
 from fastapi.testclient import TestClient
 from unittest.mock import patch
 from api.main import app
@@ -15,7 +17,7 @@ def test_ask_question_mocked(mock_rag_query):
     """Testa a rota /ask usando Mock para não gastar a API Key da Groq nos testes."""
     mock_rag_query.return_value = "Resposta simulada para teste unitário."
 
-    response = client.post("/ask", json={"question": "Qual a velocidade máxima nas vias urbanas?"})
+    response = client.post("/ask", json={"question": "Qual a velocidade máxima nas vias urbanas?"}, HEADERS = {"X-API-Key": "test_key_for_ci"})
     
     assert response.status_code == 200
     assert response.json()["query"] == "Qual a velocidade máxima nas vias urbanas?"
@@ -27,7 +29,7 @@ def test_ask_endpoint_failure(mock_rag_query):
     mock_rag_query.side_effect = Exception("Erro na API da Groq")
 
     payload = {"question": "Pergunta que vai falhar"}
-    response = client.post("/ask", json=payload)
+    response = client.post("/ask", json=payload, HEADERS = {"X-API-Key": "test_key_for_ci"})
 
     assert response.status_code == 500
-    assert "Erro na API da Groq" in response.json()["detail"]
+    assert "Erro interno ao consultar a base jurídica" in response.json()["detail"]
